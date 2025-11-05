@@ -1,0 +1,18 @@
+# Institutional Adaptive Grid Bot - Dependencies
+
+# Core dependencies
+requests>=2.31.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Optional dependencies for enhanced features
+python-dotenv>=1.0.0  # For .env file support
+
+# Development dependencies (optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0
+
+# For production deployment (optional)
+supervisor>=4.2.5  # Process management

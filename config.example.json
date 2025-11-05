@@ -1,0 +1,28 @@
+{
+  "grid": {
+    "symbol": "BTCUSDT",
+    "grid_levels": 20,
+    "grid_spacing_percent": 0.5,
+    "order_quantity_usdt": 100.0,
+    "leverage": 5,
+    "adaptive_mode": true,
+    "volatility_window": 24,
+    "min_grid_spacing": 0.2,
+    "max_grid_spacing": 2.0,
+    "rebalance_interval": 3600
+  },
+  "risk": {
+    "max_position_usdt": 10000.0,
+    "max_drawdown_percent": 15.0,
+    "stop_loss_percent": 5.0,
+    "take_profit_percent": 10.0,
+    "max_daily_loss_usdt": 500.0,
+    "max_open_orders": 40,
+    "min_order_spacing_percent": 0.1
+  },
+  "monitoring": {
+    "log_level": "INFO",
+    "track_metrics": true,
+    "enable_telegram": false
+  }
+}
