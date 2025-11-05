@@ -87,26 +87,24 @@ class TestBinanceFuturesClient:
         assert isinstance(signature, str)
         assert len(signature) == 64  # SHA256 hex digest length
 
-    @patch('binance_client.requests.Session.request')
-    def test_request_success(self, mock_request, mock_binance_client, binance_test_responses):
+    def test_request_success(self, mock_binance_client, binance_test_responses):
         """Test successful API request"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = binance_test_responses['ticker_price']
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value=binance_test_responses['ticker_price'])
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client._request('GET', '/fapi/v1/ticker/price')
 
         assert result['symbol'] == 'BTCUSDT'
         assert 'price' in result
 
-    @patch('binance_client.requests.Session.request')
-    def test_request_api_error(self, mock_request, mock_binance_client):
+    def test_request_api_error(self, mock_binance_client):
         """Test API request with error response"""
         mock_response = Mock()
         mock_response.status_code = 400
-        mock_response.json.return_value = {'code': -1000, 'msg': 'Invalid request'}
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value={'code': -1000, 'msg': 'Invalid request'})
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         with pytest.raises(BinanceAPIError) as exc_info:
             mock_binance_client._request('GET', '/fapi/v1/test')
@@ -114,60 +112,55 @@ class TestBinanceFuturesClient:
         assert exc_info.value.code == -1000
         assert 'Invalid request' in exc_info.value.message
 
-    @patch('binance_client.requests.Session.request')
-    def test_request_network_error(self, mock_request, mock_binance_client):
+    def test_request_network_error(self, mock_binance_client):
         """Test API request with network error"""
-        mock_request.side_effect = requests.exceptions.ConnectionError("Network error")
+        mock_binance_client.session.request = Mock(side_effect=requests.exceptions.ConnectionError("Network error"))
 
         with pytest.raises(BinanceAPIError):
             mock_binance_client._request('GET', '/fapi/v1/test')
 
-    @patch('binance_client.requests.Session.request')
-    def test_get_ticker_price(self, mock_request, mock_binance_client, binance_test_responses):
+    def test_get_ticker_price(self, mock_binance_client, binance_test_responses):
         """Test get ticker price"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = binance_test_responses['ticker_price']
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value=binance_test_responses['ticker_price'])
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.get_ticker_price('BTCUSDT')
 
         assert result['symbol'] == 'BTCUSDT'
         assert result['price'] == '40000.00'
 
-    @patch('binance_client.requests.Session.request')
-    def test_get_account_info(self, mock_request, mock_binance_client, binance_test_responses):
+    def test_get_account_info(self, mock_binance_client, binance_test_responses):
         """Test get account info"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = binance_test_responses['account_info']
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value=binance_test_responses['account_info'])
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.get_account_info()
 
         assert 'assets' in result
         assert result['assets'][0]['asset'] == 'USDT'
 
-    @patch('binance_client.requests.Session.request')
-    def test_get_balance(self, mock_request, mock_binance_client, binance_test_responses):
+    def test_get_balance(self, mock_binance_client, binance_test_responses):
         """Test get balance"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = binance_test_responses['account_info']
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value=binance_test_responses['account_info'])
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.get_balance()
 
         assert len(result) > 0
         assert result[0]['asset'] == 'USDT'
 
-    @patch('binance_client.requests.Session.request')
-    def test_place_order(self, mock_request, mock_binance_client, binance_test_responses):
+    def test_place_order(self, mock_binance_client, binance_test_responses):
         """Test place order"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = binance_test_responses['order_response']
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value=binance_test_responses['order_response'])
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.place_order(
             symbol='BTCUSDT',
@@ -181,61 +174,56 @@ class TestBinanceFuturesClient:
         assert result['symbol'] == 'BTCUSDT'
         assert result['side'] == 'BUY'
 
-    @patch('binance_client.requests.Session.request')
-    def test_cancel_order(self, mock_request, mock_binance_client):
+    def test_cancel_order(self, mock_binance_client):
         """Test cancel order"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {'orderId': 12345, 'status': 'CANCELED'}
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value={'orderId': 12345, 'status': 'CANCELED'})
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.cancel_order('BTCUSDT', 12345)
 
         assert result['orderId'] == 12345
         assert result['status'] == 'CANCELED'
 
-    @patch('binance_client.requests.Session.request')
-    def test_set_leverage(self, mock_request, mock_binance_client):
+    def test_set_leverage(self, mock_binance_client):
         """Test set leverage"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {'leverage': 5, 'symbol': 'BTCUSDT'}
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value={'leverage': 5, 'symbol': 'BTCUSDT'})
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.set_leverage('BTCUSDT', 5)
 
         assert result['leverage'] == 5
         assert result['symbol'] == 'BTCUSDT'
 
-    @patch('binance_client.requests.Session.request')
-    def test_get_klines(self, mock_request, mock_binance_client, binance_test_responses):
+    def test_get_klines(self, mock_binance_client, binance_test_responses):
         """Test get klines"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = binance_test_responses['klines']
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value=binance_test_responses['klines'])
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.get_klines('BTCUSDT', '1h', limit=3)
 
         assert len(result) == 3
         assert isinstance(result[0], list)
 
-    @patch('binance_client.requests.Session.request')
-    def test_test_connectivity(self, mock_request, mock_binance_client):
+    def test_test_connectivity(self, mock_binance_client):
         """Test connectivity check"""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {}
-        mock_request.return_value = mock_response
+        mock_response.json = Mock(return_value={})
+        mock_binance_client.session.request = Mock(return_value=mock_response)
 
         result = mock_binance_client.test_connectivity()
 
         assert result is True
 
-    @patch('binance_client.requests.Session.request')
-    def test_test_connectivity_failure(self, mock_request, mock_binance_client):
+    def test_test_connectivity_failure(self, mock_binance_client):
         """Test connectivity check failure"""
-        mock_request.side_effect = Exception("Connection failed")
+        mock_binance_client.session.request = Mock(side_effect=Exception("Connection failed"))
 
         result = mock_binance_client.test_connectivity()
 
@@ -320,8 +308,7 @@ class TestBinanceAPIError:
     ('BUY', 'MARKET', True),
     ('SELL', 'MARKET', True),
 ])
-@patch('binance_client.requests.Session.request')
-def test_order_types(mock_request, mock_binance_client, binance_test_responses, side, order_type, expected):
+def test_order_types(mock_binance_client, binance_test_responses, side, order_type, expected):
     """Test various order types"""
     response_data = binance_test_responses['order_response'].copy()
     response_data['side'] = side
@@ -329,8 +316,8 @@ def test_order_types(mock_request, mock_binance_client, binance_test_responses, 
 
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.json.return_value = response_data
-    mock_request.return_value = mock_response
+    mock_response.json = Mock(return_value=response_data)
+    mock_binance_client.session.request = Mock(return_value=mock_response)
 
     result = mock_binance_client.place_order(
         symbol='BTCUSDT',

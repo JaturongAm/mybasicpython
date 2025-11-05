@@ -10,7 +10,7 @@ from config import BotConfig
 from binance_client import BinanceFuturesClient
 from grid_strategy import AdaptiveGridStrategy
 from risk_manager import RiskManager
-from order_manager import OrderManager
+from order_manager import OrderManager, OrderStatus
 
 
 @pytest.mark.integration
@@ -104,7 +104,7 @@ class TestGridBotIntegration:
 
         # Simulate fill
         exchange.fill_order(buy_order.order_id)
-        buy_order.status = 'FILLED'
+        buy_order.status = OrderStatus.FILLED
         buy_order.filled_quantity = buy_order.quantity
         buy_order.filled_price = buy_order.price
 
@@ -121,15 +121,30 @@ class TestGridBotIntegration:
         order_manager = integrated_bot['order_manager']
         risk_manager = integrated_bot['risk_manager']
 
-        # Set low position limit for testing
-        risk_manager.risk_config.max_position_usdt = 500.0
+        # Set position limit for testing
+        # Each order is 0.001 BTC * 40000 = 40 USDT
+        # Set limit to 150 USDT so first order passes (40 < 150) but second fails (80 > 150 with buffer)
+        risk_manager.risk_config.max_position_usdt = 150.0
 
         # Initialize grid
         grid_strategy.initialize_grid(40000.0, 1.5)
         orders = order_manager.create_grid_orders(grid_strategy.get_pending_orders())
 
-        # Try to place all orders (should hit limit)
-        results = order_manager.place_multiple_orders(orders[:5], delay=0)
+        # Place first order and fill it to create a position
+        success, msg = order_manager.place_order(orders[0])
+        assert success is True
+
+        # Simulate order fill to create position (leverage affects position value)
+        risk_manager.update_position(
+            symbol=orders[0].symbol,
+            side=orders[0].side,
+            entry_price=orders[0].price,
+            quantity=orders[0].quantity,
+            leverage=5
+        )
+
+        # Now try to place more orders (should fail due to position limit)
+        results = order_manager.place_multiple_orders(orders[1:5], delay=0)
 
         # Some orders should be rejected due to position limit
         assert len(results['failed']) > 0
@@ -249,7 +264,7 @@ class TestGridBotIntegration:
         if buy_orders:
             buy_order = buy_orders[0]
             exchange.fill_order(buy_order.order_id)
-            buy_order.status = 'FILLED'
+            buy_order.status = OrderStatus.FILLED
             buy_order.filled_quantity = buy_order.quantity
             buy_order.filled_price = buy_order.price
 
@@ -262,7 +277,7 @@ class TestGridBotIntegration:
         if sell_orders:
             sell_order = sell_orders[0]
             exchange.fill_order(sell_order.order_id)
-            sell_order.status = 'FILLED'
+            sell_order.status = OrderStatus.FILLED
             sell_order.filled_quantity = sell_order.quantity
             sell_order.filled_price = sell_order.price
 
@@ -395,7 +410,7 @@ class TestErrorRecovery:
         success, message = order_manager.place_order(order)
 
         assert success is False
-        assert order.status == 'REJECTED'
+        assert order.status == OrderStatus.REJECTED
 
     def test_handle_invalid_configuration(self, bot_config):
         """Test handling of invalid configuration"""

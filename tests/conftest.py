@@ -309,7 +309,7 @@ class MockExchange:
         self.current_price = 40000.0
         self.order_id_counter = 1000
 
-    def place_order(self, symbol, side, order_type, quantity, price):
+    def place_order(self, symbol, side, order_type, quantity, price, time_in_force=None, **kwargs):
         """Simulate order placement"""
         order_id = self.order_id_counter
         self.order_id_counter += 1
@@ -321,7 +321,8 @@ class MockExchange:
             'type': order_type,
             'quantity': quantity,
             'price': price,
-            'status': 'NEW'
+            'status': 'NEW',
+            'timeInForce': time_in_force or 'GTC'
         }
         return self.orders[order_id]
 
